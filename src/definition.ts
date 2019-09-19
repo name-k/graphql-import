@@ -1,4 +1,4 @@
-import { keyBy, uniqBy, includes } from 'lodash'
+import { keyBy, uniqBy, includes } from "lodash";
 import {
   DocumentNode,
   TypeDefinitionNode,
@@ -9,19 +9,17 @@ import {
   DirectiveNode,
   DirectiveDefinitionNode,
   InputValueDefinitionNode,
-  FieldDefinitionNode,
-} from 'graphql'
+  FieldDefinitionNode
+} from "graphql";
 
-const builtinTypes = ['String', 'Float', 'Int', 'Boolean', 'ID']
+const builtinTypes = ["String", "Float", "Int", "Boolean", "ID", "Upload"];
 
-const builtinDirectives = ['deprecated', 'skip','include', 'key']
+const builtinDirectives = ["deprecated", "skip", "include", "key"];
 
-export type ValidDefinitionNode =
-    | DirectiveDefinitionNode
-    | TypeDefinitionNode
+export type ValidDefinitionNode = DirectiveDefinitionNode | TypeDefinitionNode;
 
 export interface DefinitionMap {
-  [key: string]: ValidDefinitionNode
+  [key: string]: ValidDefinitionNode;
 }
 
 /**
@@ -36,29 +34,29 @@ export interface DefinitionMap {
 export function completeDefinitionPool(
   allDefinitions: ValidDefinitionNode[],
   definitionPool: ValidDefinitionNode[],
-  newTypeDefinitions: ValidDefinitionNode[],
+  newTypeDefinitions: ValidDefinitionNode[]
 ): ValidDefinitionNode[] {
-  const visitedDefinitions: { [name: string]: boolean } = {}
+  const visitedDefinitions: { [name: string]: boolean } = {};
   while (newTypeDefinitions.length > 0) {
-    const schemaMap: DefinitionMap = keyBy(allDefinitions, d => d.name.value)
-    const newDefinition = newTypeDefinitions.shift()
+    const schemaMap: DefinitionMap = keyBy(allDefinitions, d => d.name.value);
+    const newDefinition = newTypeDefinitions.shift();
     if (visitedDefinitions[newDefinition.name.value]) {
-      continue
+      continue;
     }
 
     const collectedTypedDefinitions = collectNewTypeDefinitions(
       allDefinitions,
       definitionPool,
       newDefinition,
-      schemaMap,
-    )
-    newTypeDefinitions.push(...collectedTypedDefinitions)
-    definitionPool.push(...collectedTypedDefinitions)
+      schemaMap
+    );
+    newTypeDefinitions.push(...collectedTypedDefinitions);
+    definitionPool.push(...collectedTypedDefinitions);
 
-    visitedDefinitions[newDefinition.name.value] = true
+    visitedDefinitions[newDefinition.name.value] = true;
   }
 
-  return uniqBy(definitionPool, 'name.value')
+  return uniqBy(definitionPool, "name.value");
 }
 
 /**
@@ -78,106 +76,106 @@ function collectNewTypeDefinitions(
   allDefinitions: ValidDefinitionNode[],
   definitionPool: ValidDefinitionNode[],
   newDefinition: ValidDefinitionNode,
-  schemaMap: DefinitionMap,
+  schemaMap: DefinitionMap
 ): ValidDefinitionNode[] {
-  let newTypeDefinitions: ValidDefinitionNode[] = []
+  let newTypeDefinitions: ValidDefinitionNode[] = [];
 
-  if (newDefinition.kind !== 'DirectiveDefinition') {
-    newDefinition.directives.forEach(collectDirective)
+  if (newDefinition.kind !== "DirectiveDefinition") {
+    newDefinition.directives.forEach(collectDirective);
   }
 
-  if (newDefinition.kind === 'InputObjectTypeDefinition') {
-    newDefinition.fields.forEach(collectNode)
+  if (newDefinition.kind === "InputObjectTypeDefinition") {
+    newDefinition.fields.forEach(collectNode);
   }
 
-  if (newDefinition.kind === 'InterfaceTypeDefinition') {
-    const interfaceName = newDefinition.name.value
-    newDefinition.fields.forEach(collectNode)
+  if (newDefinition.kind === "InterfaceTypeDefinition") {
+    const interfaceName = newDefinition.name.value;
+    newDefinition.fields.forEach(collectNode);
 
     const interfaceImplementations = allDefinitions.filter(
       d =>
-        d.kind === 'ObjectTypeDefinition' &&
-        d.interfaces.some(i => i.name.value === interfaceName),
-    )
-    newTypeDefinitions.push(...interfaceImplementations)
+        d.kind === "ObjectTypeDefinition" &&
+        d.interfaces.some(i => i.name.value === interfaceName)
+    );
+    newTypeDefinitions.push(...interfaceImplementations);
   }
 
-  if (newDefinition.kind === 'UnionTypeDefinition') {
+  if (newDefinition.kind === "UnionTypeDefinition") {
     newDefinition.types.forEach(type => {
       if (!definitionPool.some(d => d.name.value === type.name.value)) {
-        const typeName = type.name.value
-        const typeMatch = schemaMap[typeName]
+        const typeName = type.name.value;
+        const typeMatch = schemaMap[typeName];
         if (!typeMatch) {
-          throw new Error(`Couldn't find type ${typeName} in any of the schemas.`)
+          throw new Error(
+            `Couldn't find type ${typeName} in any of the schemas.`
+          );
         }
-        newTypeDefinitions.push(schemaMap[type.name.value])
+        newTypeDefinitions.push(schemaMap[type.name.value]);
       }
-    })
+    });
   }
 
-  if (newDefinition.kind === 'ObjectTypeDefinition') {
+  if (newDefinition.kind === "ObjectTypeDefinition") {
     // collect missing interfaces
     newDefinition.interfaces.forEach(int => {
       if (!definitionPool.some(d => d.name.value === int.name.value)) {
-        const interfaceName = int.name.value
-        const interfaceMatch = schemaMap[interfaceName]
+        const interfaceName = int.name.value;
+        const interfaceMatch = schemaMap[interfaceName];
         if (!interfaceMatch) {
           throw new Error(
-            `Couldn't find interface ${interfaceName} in any of the schemas.`,
-          )
+            `Couldn't find interface ${interfaceName} in any of the schemas.`
+          );
         }
-        newTypeDefinitions.push(schemaMap[int.name.value])
+        newTypeDefinitions.push(schemaMap[int.name.value]);
       }
-    })
+    });
 
     // iterate over all fields
     newDefinition.fields.forEach(field => {
-      collectNode(field)
+      collectNode(field);
       // collect missing argument input types
-      field.arguments.forEach(collectNode)
-    })
+      field.arguments.forEach(collectNode);
+    });
   }
 
-  return newTypeDefinitions
+  return newTypeDefinitions;
 
   function collectNode(node: FieldDefinitionNode | InputValueDefinitionNode) {
-    const nodeType = getNamedType(node.type)
-    const nodeTypeName = nodeType.name.value
+    const nodeType = getNamedType(node.type);
+    const nodeTypeName = nodeType.name.value;
 
     // collect missing argument input types
     if (
       !definitionPool.some(d => d.name.value === nodeTypeName) &&
       !includes(builtinTypes, nodeTypeName)
     ) {
-      const argTypeMatch = schemaMap[nodeTypeName]
+      const argTypeMatch = schemaMap[nodeTypeName];
       if (!argTypeMatch) {
         throw new Error(
-          `Field ${node.name.value}: Couldn't find type ${nodeTypeName} in any of the schemas.`,
-        )
+          `Field ${node.name.value}: Couldn't find type ${nodeTypeName} in any of the schemas.`
+        );
       }
-      newTypeDefinitions.push(argTypeMatch)
+      newTypeDefinitions.push(argTypeMatch);
     }
 
-    node.directives.forEach(collectDirective)
+    node.directives.forEach(collectDirective);
   }
 
   function collectDirective(directive: DirectiveNode) {
-    const directiveName = directive.name.value
+    const directiveName = directive.name.value;
     if (
       !definitionPool.some(d => d.name.value === directiveName) &&
       !includes(builtinDirectives, directiveName)
     ) {
-      const directive = schemaMap[directiveName] as DirectiveDefinitionNode
+      const directive = schemaMap[directiveName] as DirectiveDefinitionNode;
       if (!directive) {
         throw new Error(
-          `Directive ${directiveName}: Couldn't find type ${
-            directiveName
-          } in any of the schemas.`,
-        )
+          `Directive ${directiveName}: Couldn't find type ${directiveName} in any of the schemas.`
+        );
       }
-      directive.arguments.forEach(collectNode)
+      directive.arguments.forEach(collectNode);
 
-      newTypeDefinitions.push(directive)
+      newTypeDefinitions.push(directive);
     }
   }
 }
@@ -189,9 +187,9 @@ function collectNewTypeDefinitions(
  * @returns {NamedTypeNode} The found NamedTypeNode
  */
 function getNamedType(type: TypeNode): NamedTypeNode {
-  if (type.kind === 'NamedType') {
-    return type
+  if (type.kind === "NamedType") {
+    return type;
   } else {
-    return getNamedType(type.type)
+    return getNamedType(type.type);
   }
 }
