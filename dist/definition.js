@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var lodash_1 = require("lodash");
-var builtinTypes = ['String', 'Float', 'Int', 'Boolean', 'ID'];
-var builtinDirectives = ['deprecated', 'skip', 'include', 'key'];
+var builtinTypes = ["String", "Float", "Int", "Boolean", "ID", "Upload"];
+var builtinDirectives = ["deprecated", "skip", "include", "key"];
 /**
  * Post processing of all imported type definitions. Loops over each of the
  * imported type definitions, and processes it using collectNewTypeDefinitions.
@@ -25,7 +25,7 @@ function completeDefinitionPool(allDefinitions, definitionPool, newTypeDefinitio
         definitionPool.push.apply(definitionPool, collectedTypedDefinitions);
         visitedDefinitions[newDefinition.name.value] = true;
     }
-    return lodash_1.uniqBy(definitionPool, 'name.value');
+    return lodash_1.uniqBy(definitionPool, "name.value");
 }
 exports.completeDefinitionPool = completeDefinitionPool;
 /**
@@ -43,22 +43,22 @@ exports.completeDefinitionPool = completeDefinitionPool;
  */
 function collectNewTypeDefinitions(allDefinitions, definitionPool, newDefinition, schemaMap) {
     var newTypeDefinitions = [];
-    if (newDefinition.kind !== 'DirectiveDefinition') {
+    if (newDefinition.kind !== "DirectiveDefinition") {
         newDefinition.directives.forEach(collectDirective);
     }
-    if (newDefinition.kind === 'InputObjectTypeDefinition') {
+    if (newDefinition.kind === "InputObjectTypeDefinition") {
         newDefinition.fields.forEach(collectNode);
     }
-    if (newDefinition.kind === 'InterfaceTypeDefinition') {
+    if (newDefinition.kind === "InterfaceTypeDefinition") {
         var interfaceName_1 = newDefinition.name.value;
         newDefinition.fields.forEach(collectNode);
         var interfaceImplementations = allDefinitions.filter(function (d) {
-            return d.kind === 'ObjectTypeDefinition' &&
+            return d.kind === "ObjectTypeDefinition" &&
                 d.interfaces.some(function (i) { return i.name.value === interfaceName_1; });
         });
         newTypeDefinitions.push.apply(newTypeDefinitions, interfaceImplementations);
     }
-    if (newDefinition.kind === 'UnionTypeDefinition') {
+    if (newDefinition.kind === "UnionTypeDefinition") {
         newDefinition.types.forEach(function (type) {
             if (!definitionPool.some(function (d) { return d.name.value === type.name.value; })) {
                 var typeName = type.name.value;
@@ -70,7 +70,7 @@ function collectNewTypeDefinitions(allDefinitions, definitionPool, newDefinition
             }
         });
     }
-    if (newDefinition.kind === 'ObjectTypeDefinition') {
+    if (newDefinition.kind === "ObjectTypeDefinition") {
         // collect missing interfaces
         newDefinition.interfaces.forEach(function (int) {
             if (!definitionPool.some(function (d) { return d.name.value === int.name.value; })) {
@@ -124,7 +124,7 @@ function collectNewTypeDefinitions(allDefinitions, definitionPool, newDefinition
  * @returns {NamedTypeNode} The found NamedTypeNode
  */
 function getNamedType(type) {
-    if (type.kind === 'NamedType') {
+    if (type.kind === "NamedType") {
         return type;
     }
     else {

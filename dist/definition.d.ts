@@ -1,4 +1,4 @@
-import { TypeDefinitionNode, DirectiveDefinitionNode } from 'graphql';
+import { TypeDefinitionNode, DirectiveDefinitionNode } from "graphql";
 export declare type ValidDefinitionNode = DirectiveDefinitionNode | TypeDefinitionNode;
 export interface DefinitionMap {
     [key: string]: ValidDefinitionNode;
